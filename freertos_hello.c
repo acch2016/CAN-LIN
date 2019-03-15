@@ -76,8 +76,10 @@ flexcan_mb_transfer_t tx100Xfer, tx50Xfer, rx1Xfer, rx2Xfer;
 flexcan_frame_t tx100Frame, tx50Frame, rx1Frame, rx2Frame;
 uint32_t tx100Identifier = 0x100;
 uint32_t tx50Identifier = 0x50;
-uint32_t rx1Identifier = 0x101;
-uint32_t rx2Identifier = 0x102;
+uint32_t rx1Identifier = 0x10;
+uint32_t rx2Identifier = 0x11;
+
+volatile TickType_t xFrequency2 = OS_TICK_PERIOD_100MS;
 
 /*******************************************************************************
  * Code
@@ -179,7 +181,7 @@ int main(void)
 static void task_100ms(void *pvParameters)
 {
 	TickType_t xLastWakeTime;
-	const TickType_t xFrequency = OS_TICK_PERIOD_100MS;
+
 	volatile uint32_t can_flags = 0;
 
 	// Initialize the xLastWakeTime variable with the current time.
@@ -202,7 +204,7 @@ static void task_100ms(void *pvParameters)
     	tx100Frame.dataByte1++;
 
         // Wait for the next cycle.
-        vTaskDelayUntil( &xLastWakeTime, xFrequency);
+        vTaskDelayUntil( &xLastWakeTime, xFrequency2);
     }
 }
 
@@ -291,6 +293,23 @@ static void task_rx(void *pvParameters)
     				rxFrame->dataByte0, rxFrame->dataByte1, rxFrame->dataByte2, rxFrame->dataByte3,
 					rxFrame->dataByte4, rxFrame->dataByte5, rxFrame->dataByte6, rxFrame->dataByte7
 					);
+    		if((rxFrame->id>>18) == 0x10)
+    		{
+    			if(rxFrame->dataByte0 && 0x01)
+    			{
+    				PRINTF("PRENDERLED");
+
+    			}
+    			else
+    			{
+    				PRINTF("off_LED");
+    			}
+    		}
+    		else if((rxFrame->id>>18) == 0x11)
+			{
+    			xFrequency2 = (rxFrame->dataByte0)*100;
+
+			}
     		message_received = false;
     	}
     	vTaskDelay(10);//2
