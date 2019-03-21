@@ -76,7 +76,7 @@ volatile uint32_t received_mb_idx;
 flexcan_handle_t flexcanHandle;
 flexcan_mb_transfer_t tx100Xfer, tx50Xfer, rx1Xfer, rx2Xfer;
 flexcan_frame_t tx100Frame, tx50Frame, rx1Frame, rx2Frame;
-uint32_t tx100Identifier = 0x100;
+uint32_t tx100Identifier = 0x20;
 uint32_t tx50Identifier = 0x50;
 uint32_t rx1Identifier = 0x10;
 uint32_t rx2Identifier = 0x11;
@@ -226,7 +226,7 @@ static void task_100ms(void *pvParameters)
         PRINTF("ADC Value: %d\r\n", get_adc_value());
 //        PRINTF("ADC Interrupt Count: %d\r\n", g_Adc16InterruptCounter);
 
-    	tx100Frame.dataByte0 = 100;
+    	tx100Frame.dataByte0 = (get_adc_value() && 0x00000FFF);
     	tx100Frame.dataByte1++;
 
         // Wait for the next cycle.
