@@ -42,6 +42,8 @@
 
 #include "pin_mux.h"
 #include "clock_config.h"
+
+#include "ADC.h"
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
@@ -182,6 +184,12 @@ static void task_100ms(void *pvParameters)
 {
 	TickType_t xLastWakeTime;
 
+	adc_config_t config;
+	config.base = ADC0;
+	adc_init(config);
+	volatile bool g_Adc16ConversionDoneFlag;
+	g_Adc16ConversionDoneFlag = false;
+
 	volatile uint32_t can_flags = 0;
 
 	// Initialize the xLastWakeTime variable with the current time.
@@ -199,6 +207,24 @@ static void task_100ms(void *pvParameters)
     	tx100Xfer.frame = &tx100Frame;
     	tx100Xfer.mbIdx = TX100_MESSAGE_BUFFER_NUM;
     	FLEXCAN_TransferSendNonBlocking(EXAMPLE_CAN, &flexcanHandle, &tx100Xfer);
+
+    	g_Adc16ConversionDoneFlag = false;
+        /*
+         When in software trigger mode, each conversion would be launched once calling the "ADC16_ChannelConfigure()"
+         function, which works like writing a conversion command and executing it. For another channel's conversion,
+         just to change the "channelNumber" field in channel configuration structure, and call the function
+         "ADC16_ChannelConfigure()"" again.
+         Also, the "enableInterruptOnConversionCompleted" inside the channel configuration structure is a parameter for
+         the conversion command. It takes affect just for the current conversion. If the interrupt is still required
+         for the following conversion, it is necessary to assert the "enableInterruptOnConversionCompleted" every time
+         for each command.
+        */
+        adc_SetChannelConfig();
+        while (!get_g_Adc16ConversionDoneFlag())
+        {
+        }
+        PRINTF("ADC Value: %d\r\n", get_adc_value());
+//        PRINTF("ADC Interrupt Count: %d\r\n", g_Adc16InterruptCounter);
 
     	tx100Frame.dataByte0 = 100;
     	tx100Frame.dataByte1++;
