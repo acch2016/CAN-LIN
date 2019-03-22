@@ -189,6 +189,8 @@ static void task_100ms(void *pvParameters)
 	adc_init(config);
 	volatile bool g_Adc16ConversionDoneFlag;
 	g_Adc16ConversionDoneFlag = false;
+    uint16_t adc_16value = 0;
+    uint8_t adc_value_H = 0;
 
 	volatile uint32_t can_flags = 0;
 
@@ -225,10 +227,10 @@ static void task_100ms(void *pvParameters)
         }
         PRINTF("ADC Value: %d\r\n", get_adc_value());
 //        PRINTF("ADC Interrupt Count: %d\r\n", g_Adc16InterruptCounter);
-
-    	tx100Frame.dataByte0 = (get_adc_value() && 0x00000FFF);
-    	tx100Frame.dataByte1++;
-
+        adc_16value = get_adc_value();
+        adc_value_H = adc_16value >> 8;
+        tx100Frame.dataByte0 = get_adc_value();
+    	tx100Frame.dataByte1 = adc_value_H;
         // Wait for the next cycle.
         vTaskDelayUntil( &xLastWakeTime, xFrequency2);
     }
