@@ -75,7 +75,7 @@ void adc_init(adc_config_t config)
 #endif /* FSL_FEATURE_ADC16_HAS_CALIBRATION */
 
     PRINTF("ADC Full Range: %d\r\n", g_Adc16_12bitFullRange);
-    PRINTF("Press any key to get user channel's ADC value ...\r\n");
+//    PRINTF("Press any key to get user channel's ADC value ...\r\n");
 
     conf.adc16ChannelConfigStruct.channelNumber = ADC16_USER_CHANNEL;
     conf.adc16ChannelConfigStruct.enableInterruptOnConversionCompleted = true; /* Enable the interrupt. */

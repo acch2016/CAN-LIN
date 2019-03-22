@@ -44,6 +44,7 @@
 #include "clock_config.h"
 
 #include "ADC.h"
+#include "GPIO.h"
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
@@ -60,6 +61,7 @@
 #define RX2_MESSAGE_BUFFER_NUM (9)
 #define TX100_MESSAGE_BUFFER_NUM (8)
 #define TX50_MESSAGE_BUFFER_NUM (7)
+#define CAN2
 /*******************************************************************************
  * Prototypes
  ******************************************************************************/
@@ -77,11 +79,16 @@ flexcan_handle_t flexcanHandle;
 flexcan_mb_transfer_t tx100Xfer, tx50Xfer, rx1Xfer, rx2Xfer;
 flexcan_frame_t tx100Frame, tx50Frame, rx1Frame, rx2Frame;
 uint32_t tx100Identifier = 0x20;
-uint32_t tx50Identifier = 0x50;
+uint32_t tx50Identifier = 0x30;
 uint32_t rx1Identifier = 0x10;
 uint32_t rx2Identifier = 0x11;
 
-volatile TickType_t xFrequency2 = OS_TICK_PERIOD_100MS;
+#ifdef CAN1
+volatile TickType_t xFrequency = OS_TICK_PERIOD_100MS;
+#endif
+#ifdef CAN2
+volatile TickType_t xFrequency = OS_TICK_PERIOD_50MS;
+#endif
 
 /*******************************************************************************
  * Code
@@ -167,9 +174,12 @@ int main(void)
 	BOARD_BootClockRUN();
 	BOARD_InitDebugConsole();
 	CAN_Init();
-
+#ifdef CAN1
     xTaskCreate(task_100ms, "100ms Task", configMINIMAL_STACK_SIZE + 10, NULL, hello_task_PRIORITY, NULL);
+#endif
+#ifdef CAN2
     xTaskCreate(task_50ms, "50ms Task", configMINIMAL_STACK_SIZE + 10, NULL, hello_task_PRIORITY, NULL);
+#endif
     xTaskCreate(task_rx, "rx Task", configMINIMAL_STACK_SIZE + 10, NULL, hello_task_PRIORITY, NULL);
     vTaskStartScheduler();
 
@@ -232,9 +242,12 @@ static void task_100ms(void *pvParameters)
         tx100Frame.dataByte0 = get_adc_value();
     	tx100Frame.dataByte1 = adc_value_H;
         // Wait for the next cycle.
-        vTaskDelayUntil( &xLastWakeTime, xFrequency2);
+        vTaskDelayUntil( &xLastWakeTime, xFrequency);
     }
 }
+
+//#define I2C_APP_MEM
+
 
 /*!
  * @brief Task responsible for sending the 50ms message.
@@ -242,7 +255,16 @@ static void task_100ms(void *pvParameters)
 static void task_50ms(void *pvParameters)
 {
 	TickType_t xLastWakeTime;
-	const TickType_t xFrequency = OS_TICK_PERIOD_50MS;
+
+	adc_config_t config;
+	config.base = ADC0;
+	adc_init(config);
+	volatile bool g_Adc16ConversionDoneFlag;
+	g_Adc16ConversionDoneFlag = false;
+    uint16_t adc_16value = 0;
+    uint8_t adc_value_H = 0;
+
+//	const TickType_t xFrequency = OS_TICK_PERIOD_50MS;
 	volatile uint32_t can_flags = 0;
 
 	// Initialize the xLastWakeTime variable with the current time.
@@ -261,8 +283,30 @@ static void task_50ms(void *pvParameters)
     	tx50Xfer.mbIdx = TX50_MESSAGE_BUFFER_NUM;
     	FLEXCAN_TransferSendNonBlocking(EXAMPLE_CAN, &flexcanHandle, &tx50Xfer);
 
-    	tx50Frame.dataByte0 = 50;
-    	tx50Frame.dataByte1++;
+    	g_Adc16ConversionDoneFlag = false;
+        /*
+         When in software trigger mode, each conversion would be launched once calling the "ADC16_ChannelConfigure()"
+         function, which works like writing a conversion command and executing it. For another channel's conversion,
+         just to change the "channelNumber" field in channel configuration structure, and call the function
+         "ADC16_ChannelConfigure()"" again.
+         Also, the "enableInterruptOnConversionCompleted" inside the channel configuration structure is a parameter for
+         the conversion command. It takes affect just for the current conversion. If the interrupt is still required
+         for the following conversion, it is necessary to assert the "enableInterruptOnConversionCompleted" every time
+         for each command.
+        */
+        adc_SetChannelConfig();
+        while (!get_g_Adc16ConversionDoneFlag())
+        {
+        }
+        PRINTF("ADC Value: %d\r\n", get_adc_value());
+//        PRINTF("ADC Interrupt Count: %d\r\n", g_Adc16InterruptCounter);
+        adc_16value = get_adc_value();
+        adc_value_H = adc_16value >> 8;
+        tx50Frame.dataByte0 = get_adc_value();
+    	tx50Frame.dataByte1 = adc_value_H;
+
+//    	tx50Frame.dataByte0 = 50;
+//    	tx50Frame.dataByte1++;
 
         // Wait for the next cycle.
         vTaskDelayUntil( &xLastWakeTime, xFrequency);
@@ -276,6 +320,13 @@ static void task_rx(void *pvParameters)
 {
 	volatile uint32_t can_flags = 0;
 	flexcan_frame_t* rxFrame;
+
+	rtos_gpio_config_t config_LED;
+	config_LED.gpio = rtos_gpioE;
+	config_LED.port = rtos_gpio_portE;
+	config_LED.pin = 26;
+	config_LED.pin_direction = rtos_gpio_output;
+	rtos_gpio_init(config_LED);
 
 	// Initialize the xLastWakeTime variable with the current time.
     for (;;)
@@ -325,17 +376,18 @@ static void task_rx(void *pvParameters)
     		{
     			if(rxFrame->dataByte0 && 0x01)
     			{
-    				PRINTF("PRENDERLED");
-
+//    				PRINTF("PRENDERLED");
+    				rtos_gpio_LED_ON(config_LED);
     			}
     			else
     			{
-    				PRINTF("off_LED");
+//    				PRINTF("off_LED");
+    				rtos_gpio_LED_OFF(config_LED);
     			}
     		}
     		else if((rxFrame->id>>18) == 0x11)
 			{
-    			xFrequency2 = (rxFrame->dataByte0)*100;
+    			xFrequency = (rxFrame->dataByte0)*100;
 
 			}
     		message_received = false;
