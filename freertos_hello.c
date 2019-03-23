@@ -61,7 +61,7 @@
 #define RX2_MESSAGE_BUFFER_NUM (9)
 #define TX100_MESSAGE_BUFFER_NUM (8)
 #define TX50_MESSAGE_BUFFER_NUM (7)
-#define CAN2
+#define CAN1
 /*******************************************************************************
  * Prototypes
  ******************************************************************************/
@@ -374,7 +374,7 @@ static void task_rx(void *pvParameters)
 					);
     		if((rxFrame->id>>18) == 0x10)
     		{
-    			if(rxFrame->dataByte0 && 0x01)
+    			if(rxFrame->dataByte0 & 0x01)
     			{
 //    				PRINTF("PRENDERLED");
     				rtos_gpio_LED_ON(config_LED);
