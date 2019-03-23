@@ -281,10 +281,9 @@ static void task_50ms(void *pvParameters)
     	tx50Frame.length = 8;
     	tx50Xfer.frame = &tx50Frame;
     	tx50Xfer.mbIdx = TX50_MESSAGE_BUFFER_NUM;
-    	if(0 != xFrequency){
-			FLEXCAN_TransferSendNonBlocking(EXAMPLE_CAN, &flexcanHandle,
-					&tx50Xfer);
-
+    	if(0 != xFrequency)
+    	{
+			FLEXCAN_TransferSendNonBlocking(EXAMPLE_CAN, &flexcanHandle, &tx50Xfer);
     	}
 
     	g_Adc16ConversionDoneFlag = false;
