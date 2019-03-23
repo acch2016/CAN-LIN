@@ -281,7 +281,11 @@ static void task_50ms(void *pvParameters)
     	tx50Frame.length = 8;
     	tx50Xfer.frame = &tx50Frame;
     	tx50Xfer.mbIdx = TX50_MESSAGE_BUFFER_NUM;
-    	FLEXCAN_TransferSendNonBlocking(EXAMPLE_CAN, &flexcanHandle, &tx50Xfer);
+    	if(0 != xFrequency){
+			FLEXCAN_TransferSendNonBlocking(EXAMPLE_CAN, &flexcanHandle,
+					&tx50Xfer);
+
+    	}
 
     	g_Adc16ConversionDoneFlag = false;
         /*
@@ -374,7 +378,7 @@ static void task_rx(void *pvParameters)
 					);
     		if((rxFrame->id>>18) == 0x10)
     		{
-    			if(rxFrame->dataByte0 && 0x01)
+    			if(rxFrame->dataByte0 & 0x02)
     			{
 //    				PRINTF("PRENDERLED");
     				rtos_gpio_LED_ON(config_LED);
@@ -387,7 +391,7 @@ static void task_rx(void *pvParameters)
     		}
     		else if((rxFrame->id>>18) == 0x11)
 			{
-    			xFrequency = (rxFrame->dataByte0)*100;
+    			xFrequency = (rxFrame->dataByte1)*100;
 
 			}
     		message_received = false;
