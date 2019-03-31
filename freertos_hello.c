@@ -78,18 +78,21 @@ volatile uint32_t received_mb_idx;
 flexcan_handle_t flexcanHandle;
 flexcan_mb_transfer_t tx100Xfer, tx50Xfer, rx1Xfer, rx2Xfer;
 flexcan_frame_t tx100Frame, tx50Frame, rx1Frame, rx2Frame;
-uint32_t tx100Identifier = 0x20;
+//uint32_t tx100Identifier = 0x20;
 uint32_t tx50Identifier = 0x30;
+uint32_t tx2Identifier = 0x31;
 uint32_t rx1Identifier = 0x10;
 uint32_t rx2Identifier = 0x11;
 
-#ifdef CAN1
-volatile TickType_t xFrequency = OS_TICK_PERIOD_100MS;
-#endif
+
+volatile TickType_t xFrequency_LIN = OS_TICK_PERIOD_100MS;
+
 #ifdef CAN2
 volatile TickType_t xFrequency = OS_TICK_PERIOD_50MS;
 #endif
 
+uint8_t adcLIN_L = 0;
+uint8_t adcLIN_H = 0;
 /*******************************************************************************
  * Code
  ******************************************************************************/
@@ -174,9 +177,9 @@ int main(void)
 	BOARD_BootClockRUN();
 	BOARD_InitDebugConsole();
 	CAN_Init();
-#ifdef CAN1
+
     xTaskCreate(task_100ms, "100ms Task", configMINIMAL_STACK_SIZE + 10, NULL, hello_task_PRIORITY, NULL);
-#endif
+
 #ifdef CAN2
     xTaskCreate(task_50ms, "50ms Task", configMINIMAL_STACK_SIZE + 10, NULL, hello_task_PRIORITY, NULL);
 #endif
@@ -194,13 +197,6 @@ static void task_100ms(void *pvParameters)
 {
 	TickType_t xLastWakeTime;
 
-	adc_config_t config;
-	config.base = ADC0;
-	adc_init(config);
-	volatile bool g_Adc16ConversionDoneFlag;
-	g_Adc16ConversionDoneFlag = false;
-    uint16_t adc_16value = 0;
-    uint8_t adc_value_H = 0;
 
 	volatile uint32_t can_flags = 0;
 
@@ -212,7 +208,7 @@ static void task_100ms(void *pvParameters)
     	can_flags = FLEXCAN_GetStatusFlags(EXAMPLE_CAN);
 
     	/* Send a Can message */
-    	tx100Frame.id = FLEXCAN_ID_STD(tx100Identifier);
+    	tx100Frame.id = FLEXCAN_ID_STD(tx2Identifier);
     	tx100Frame.format = kFLEXCAN_FrameFormatStandard;
     	tx100Frame.type = kFLEXCAN_FrameTypeData;
     	tx100Frame.length = 8;
@@ -220,31 +216,27 @@ static void task_100ms(void *pvParameters)
     	tx100Xfer.mbIdx = TX100_MESSAGE_BUFFER_NUM;
     	FLEXCAN_TransferSendNonBlocking(EXAMPLE_CAN, &flexcanHandle, &tx100Xfer);
 
-    	g_Adc16ConversionDoneFlag = false;
-        /*
-         When in software trigger mode, each conversion would be launched once calling the "ADC16_ChannelConfigure()"
-         function, which works like writing a conversion command and executing it. For another channel's conversion,
-         just to change the "channelNumber" field in channel configuration structure, and call the function
-         "ADC16_ChannelConfigure()"" again.
-         Also, the "enableInterruptOnConversionCompleted" inside the channel configuration structure is a parameter for
-         the conversion command. It takes affect just for the current conversion. If the interrupt is still required
-         for the following conversion, it is necessary to assert the "enableInterruptOnConversionCompleted" every time
-         for each command.
-        */
-        adc_SetChannelConfig();
-        while (!get_g_Adc16ConversionDoneFlag())
-        {
-        }
-        PRINTF("ADC Value: %d\r\n", get_adc_value());
-//        PRINTF("ADC Interrupt Count: %d\r\n", g_Adc16InterruptCounter);
-        adc_16value = get_adc_value();
-        adc_value_H = adc_16value >> 8;
-        tx100Frame.dataByte0 = get_adc_value();
-    	tx100Frame.dataByte1 = adc_value_H;
+    	PRINTF("request ADC LIN");
+//    	lin1d3_masterSendMessage(master_handle, app_message_id_1_d);
+
+//    	Transmit by CAN to panel from global variables uint8
+//    	that will store what we'll get from callback
+    	adcLIN_L = 200;
+    	adcLIN_H = 0;
+
+        tx100Frame.dataByte0 = adcLIN_L;
+    	tx100Frame.dataByte1 = adcLIN_H;
+
         // Wait for the next cycle.
-        vTaskDelayUntil( &xLastWakeTime, xFrequency);
+        vTaskDelayUntil( &xLastWakeTime, xFrequency_LIN);
     }
 }
+//static void	message_1_callback_master(void* message)
+//{
+//	uint8_t* message_data = (uint8_t*)message;
+//	uint16_t adc_value = message_data[0] | (message_data[1] << 8);
+//	PRINTF("Master got response to message 1 L:%d,H:%d  value:%d\r\n", message_data[0], message_data[1], adc_value);
+//}
 
 //#define I2C_APP_MEM
 
@@ -379,18 +371,33 @@ static void task_rx(void *pvParameters)
     		{
     			if(rxFrame->dataByte0 & 0x02)
     			{
-//    				PRINTF("PRENDERLED");
     				rtos_gpio_LED_ON(config_LED);
     			}
     			else
     			{
-//    				PRINTF("off_LED");
     				rtos_gpio_LED_OFF(config_LED);
     			}
+    			if (rxFrame->dataByte0 & 0x03)
+    			{
+    				PRINTF("led LIN on");
+//    				lin1d3_masterSendMessage(master_handle, app_message_id_2_d);
+				}
+    			else
+    			{
+    				PRINTF("led LIN off");
+//    				lin1d3_masterSendMessage(master_handle, app_message_id_3_d);
+				}
     		}
     		else if((rxFrame->id>>18) == 0x11)
 			{
-    			xFrequency = (rxFrame->dataByte1)*100;
+    			if ((rxFrame->dataByte1) > 0)
+    			{
+    				xFrequency = (rxFrame->dataByte1)*100;
+				}
+    			if ((rxFrame->dataByte2) > 0)
+    			{
+    				xFrequency_LIN = (rxFrame->dataByte2)*100;
+				}
 
 			}
     		message_received = false;
