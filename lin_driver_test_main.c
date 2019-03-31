@@ -70,6 +70,8 @@ static void	message_3_callback_slave(void* message);
  ******************************************************************************/
 uint16_t adc_16value = 0;
 uint8_t adc_value_H = 0;
+rtos_gpio_config_t config_LED;
+
 /*******************************************************************************
  * Code
  ******************************************************************************/
@@ -88,6 +90,13 @@ int main(void)
 	adc_config_t config;
 	config.base = ADC0;
 	adc_init(config);
+	/**GPIO**/
+//	rtos_gpio_config_t config_LED;
+	config_LED.gpio = rtos_gpioE;
+	config_LED.port = rtos_gpio_portE;
+	config_LED.pin = 26;
+	config_LED.pin_direction = rtos_gpio_output;
+	rtos_gpio_init(config_LED);
 
     if (xTaskCreate(test_task, "test_task", test_task_heap_size_d, NULL, init_task_PRIORITY, NULL) != pdPASS)
     {
@@ -221,25 +230,28 @@ static void	message_1_callback_slave(void* message)
 
 static void	message_2_callback_slave(void* message)
 {
+	rtos_gpio_LED_ON(config_LED);
 	uint8_t* message_data = (uint8_t*)message;
 	PRINTF("Slave got message 2 request\r\n");
-	message_data[0] = 79;
-	message_data[1] = 80;
-	message_data[2] = 81;
-	message_data[3] = 82;
+	message_data[0] = 'L';
+	message_data[1] = 'E';
+	message_data[2] = 'D';
+	message_data[3] = 'O';
+	message_data[4] = 'N';
 }
 
 static void	message_3_callback_slave(void* message)
 {
+	rtos_gpio_LED_OFF(config_LED);
 	uint8_t* message_data = (uint8_t*)message;
 	PRINTF("Slave got message 3 request\r\n");
-	message_data[0] = 79;
-	message_data[1] = 80;
-	message_data[2] = 81;
-	message_data[3] = 82;
-	message_data[4] = 83;
-	message_data[5] = 84;
-	message_data[6] = 85;
-	message_data[7] = 86;
+	message_data[0] = 'L';
+	message_data[1] = 'E';
+	message_data[2] = 'D';
+	message_data[3] = 'O';
+	message_data[4] = 'F';
+	message_data[5] = 'F';
+//	message_data[6] = 85;
+//	message_data[7] = 86;
 }
 
