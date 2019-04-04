@@ -233,11 +233,11 @@ static void	message_2_callback_slave(void* message)
 	rtos_gpio_LED_ON(config_LED);
 	uint8_t* message_data = (uint8_t*)message;
 	PRINTF("Slave got message 2 request\r\n");
-	message_data[0] = 'L';
-	message_data[1] = 'E';
-	message_data[2] = 'D';
-	message_data[3] = 'O';
-	message_data[4] = 'N';
+	message_data[0] = 1;
+//	message_data[1] = 'E';
+//	message_data[2] = 'D';
+//	message_data[3] = 'O';
+//	message_data[4] = 'N';
 }
 
 static void	message_3_callback_slave(void* message)
@@ -245,12 +245,12 @@ static void	message_3_callback_slave(void* message)
 	rtos_gpio_LED_OFF(config_LED);
 	uint8_t* message_data = (uint8_t*)message;
 	PRINTF("Slave got message 3 request\r\n");
-	message_data[0] = 'L';
-	message_data[1] = 'E';
-	message_data[2] = 'D';
-	message_data[3] = 'O';
-	message_data[4] = 'F';
-	message_data[5] = 'F';
+	message_data[0] = 0;
+//	message_data[1] = 'E';
+//	message_data[2] = 'D';
+//	message_data[3] = 'O';
+//	message_data[4] = 'F';
+//	message_data[5] = 'F';
 //	message_data[6] = 85;
 //	message_data[7] = 86;
 }
