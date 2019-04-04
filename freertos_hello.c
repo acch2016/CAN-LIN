@@ -206,6 +206,11 @@ static void task_100ms(void *pvParameters)
     {
     	/* Get the flags from the can Driver */
     	can_flags = FLEXCAN_GetStatusFlags(EXAMPLE_CAN);
+    	adcLIN_L = 200;
+    	adcLIN_H = 0;
+    	PRINTF("___________________request ADC LIN\r\n");
+//    	lin1d3_masterSendMessage(master_handle, app_message_id_1_d);
+//    	wait for response from master
 
     	/* Send a Can message */
     	tx100Frame.id = FLEXCAN_ID_STD(tx2Identifier);
@@ -214,18 +219,14 @@ static void task_100ms(void *pvParameters)
     	tx100Frame.length = 8;
     	tx100Xfer.frame = &tx100Frame;
     	tx100Xfer.mbIdx = TX100_MESSAGE_BUFFER_NUM;
+        tx100Frame.dataByte0 = adcLIN_L;
+    	tx100Frame.dataByte1 = adcLIN_H;
     	FLEXCAN_TransferSendNonBlocking(EXAMPLE_CAN, &flexcanHandle, &tx100Xfer);
 
-    	PRINTF("request ADC LIN");
-//    	lin1d3_masterSendMessage(master_handle, app_message_id_1_d);
 
 //    	Transmit by CAN to panel from global variables uint8
 //    	that will store what we'll get from callback
-    	adcLIN_L = 200;
-    	adcLIN_H = 0;
 
-        tx100Frame.dataByte0 = adcLIN_L;
-    	tx100Frame.dataByte1 = adcLIN_H;
 
         // Wait for the next cycle.
         vTaskDelayUntil( &xLastWakeTime, xFrequency_LIN);
@@ -377,7 +378,7 @@ static void task_rx(void *pvParameters)
     			{
     				rtos_gpio_LED_OFF(config_LED);
     			}
-    			if (rxFrame->dataByte0 & 0x03)
+    			if (rxFrame->dataByte0 & 0x04)
     			{
     				PRINTF("led LIN on");
 //    				lin1d3_masterSendMessage(master_handle, app_message_id_2_d);
