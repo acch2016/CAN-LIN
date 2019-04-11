@@ -59,6 +59,7 @@
 #define OS_TICK_PERIOD_50MS 50
 /* Task priorities. */
 #define hello_task_PRIORITY (configMAX_PRIORITIES - 1)
+#define hello_task_PRIORITY_2 (configMAX_PRIORITIES - 2)
 /* CAN defines */
 #define EXAMPLE_CAN CAN0
 #define EXAMPLE_CAN_CLKSRC kCLOCK_BusClk
@@ -207,7 +208,7 @@ int main(void)
 
 	CAN_Init();
 
-    xTaskCreate(task_100ms, "100ms Task", configMINIMAL_STACK_SIZE + 10, NULL, hello_task_PRIORITY, NULL);
+    xTaskCreate(task_100ms, "100ms Task", configMINIMAL_STACK_SIZE + 10, NULL, hello_task_PRIORITY-2, NULL);
 
 #ifdef CAN2
     xTaskCreate(task_50ms, "50ms Task", configMINIMAL_STACK_SIZE + 10, NULL, hello_task_PRIORITY, NULL);
@@ -362,9 +363,14 @@ static void task_50ms(void *pvParameters)
          for each command.
         */
         adc_SetChannelConfig();
-        while (!get_g_Adc16ConversionDoneFlag())
-        {
-        }
+//        while (!get_g_Adc16ConversionDoneFlag())
+//        {
+//        }
+    	/** Waiting for Adc16ConversionDoneFlag **/
+    	while(!get_g_Adc16ConversionDoneFlag())
+    	{
+    		vTaskDelay(2);
+    	}
         PRINTF("ADC Value: %d\r\n", get_adc_value());
 //        PRINTF("ADC Interrupt Count: %d\r\n", g_Adc16InterruptCounter);
         adc_16value = get_adc_value();
@@ -522,7 +528,7 @@ static void	message_1_callback_master(void* message)
 	adcLIN_L = message_data[0];
 	adcLIN_H = message_data[1];
 	uint16_t adc_value = message_data[0] | (message_data[1] << 8);
-	PRINTF("Master got response to message 1 ADC value: %d\r\n", adc_value);
+//	PRINTF("Master got response to message 1 ADC value: %d\r\n", adc_value);
 	lin_flag  = true;
 }
 
