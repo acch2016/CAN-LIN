@@ -27,6 +27,13 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+//TODO copiar lo siguiente en board/board.h
+//#define PIN16_IDX                       16u   /*!< Pin number for pin 16 in a port */
+//#define PIN17_IDX                       17u   /*!< Pin number for pin 17 in a port */
+//
+//  /*UART 3 pins config*/
+//  PORT_SetPinMux(PORTC, PIN16_IDX, kPORT_MuxAlt3);           /* PORTB14 (pin 90) is configured as UART3_RX */
+//  PORT_SetPinMux(PORTC, PIN17_IDX, kPORT_MuxAlt3);           /* PORTB15 (pin 91) is configured as UART3_TX */
 
 /* FreeRTOS kernel includes. */
 #include "FreeRTOS.h"
